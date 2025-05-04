@@ -318,7 +318,12 @@ int main(int argc, char* argv[]) {
         // проверка на D||L
         if (isalpha(term[0])) term = "L";
         if (isdigit(term[0])) term = "D";
-        if ((state == State::W || term == "\n" || state == State::Q || state == State::M) && !(state == State::M && term == "/")) term = "U";
+        if (state == State::W || state == State::Q || state == State::M) {
+            if (term != "*" && term != "/" && term != "\n") {
+                term = "U"; // глушим все кроме возможного конца
+            }
+        }
+
         std::cout << "Generated term: '" << term << "'\n";
 
         InnerMap transfers = kTransitionTable.at(state);
@@ -341,6 +346,9 @@ int main(int argc, char* argv[]) {
         if (state == State::Z) {
             state = State::S;
         };
+        if (state == State::W) {
+
+        }
     }
 
     // 6. Вывод результата
