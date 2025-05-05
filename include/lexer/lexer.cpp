@@ -7,7 +7,7 @@
 #include <string>
 #include <iomanip>
 #include <algorithm>
-
+// ну типа
 using namespace std;
 
 // вспомогательные структуры
@@ -285,9 +285,18 @@ static const Table kTransitionTable = {
         { "&",      { State::Z, 14 } },
     }},
 };
-
-
+// lexer()
 int main(int argc, char* argv[]) {
+    // для красоты качаем описания
+    const int NUM_W  = 4;
+    const int VAL_W  = 12;
+    const int POS_W  = 12;
+    const int DESC_W = 40;
+    if (!loadLexemeDescriptions()) {
+        std::cerr << "Failed to load lexeme descriptions\n";
+        return 1;
+    }
+
     // 1. Читаем весь файл
     // 
     std::string input;
@@ -304,14 +313,14 @@ int main(int argc, char* argv[]) {
     //
 
     std::cout << input << std::endl;
-
+    // НЕ ТРОГАТЬ, НИИИКИИИТТАААА
     // 2. Подготовка данных для контекста
     Context ctx;
     ctx.InputSTR = input;
     State state = State::S;
 
     for (; ctx.i < input.size(); ctx.i++, ctx.pos++) {
-        std::cout << "progessing character: '" << ctx.InputSTR[ctx.i] << "' (ASCII: " << static_cast<int>(ctx.InputSTR[ctx.i]) << ") at position (" << ctx.row << ", " << ctx.pos << ")\n";
+        std::cout << "progessing character: '" << ctx.InputSTR[ctx.i] << "' (state: " << state << ") at position (" << ctx.row << ", " << ctx.pos << ")\n";
 
         std::string term(1, ctx.InputSTR[ctx.i]);
 
@@ -346,22 +355,33 @@ int main(int argc, char* argv[]) {
         if (state == State::Z) {
             state = State::S;
         };
-        if (state == State::W) {
-
-        }
     }
-
+    // МОЖНА ТРОГАТЬ ВАНЮ
+    
     // 6. Вывод результата
     std::cout << "\n=== Lexer Results ===\n";
-    std::cout << std::setw(4) << "Num" 
+    std::cout << std::setw(4) << "Num"
               << " | " << std::setw(12) << "Value"
-              << " | " << std::setw(10) << "Position (Row, Col)" << "\n";
-    std::cout << "---------------------------------------------\n";
+              << " | " << std::setw(12) << "Position"
+              << " | " << std::setw(30) << "Description" << "\n";
+    std::cout << std::string(4 + 3 + 12 + 3 + 12 + 3 + 30, '-') << "\n";
 
     for (auto &lx : ctx.prog) {
+        auto it = g_lexemeDescriptions.find(lx.num);
+        const std::string& desc = (it != g_lexemeDescriptions.end()
+                                   ? it->second
+                                   : "<no description>");
+
         std::cout << std::setw(4) << lx.num
                   << " | " << std::setw(12) << std::quoted(lx.value)
-                  << " | (" << std::setw(2) << lx.row << ", " << std::setw(2) << lx.pos << ")\n";
+                  << " | " << std::setw(12)
+                  << ("(" + std::to_string(lx.row) + "," + std::to_string(lx.pos) + ")")
+                  << " | " 
+                  // переключаемся на выравнивание влево
+                  << std::left 
+                  << std::setw(DESC_W) << desc 
+                  << std::right 
+                  << "\n";
     }
     return 0;
 }

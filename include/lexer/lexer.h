@@ -11,3 +11,5 @@ extern std::unordered_map<int, std::string> g_lexemeDescriptions;
 
 // грузит лексемы с описаниеями
 bool loadLexemeDescriptions();
+
+void dumpLexemeDescriptions();
