@@ -134,6 +134,7 @@ static const Table kTransitionTable = {
         { "!",      { State::O, 2 } },
         { "&",      { State::B, 2 } },
         { " ",      { State::S, 15 } },
+        { "\t",     { State::S, 15 } },
         { "\n",     { State::S, 4 } },
         { "Ʇ",      { State::Z, 5 } },
     }},
@@ -156,6 +157,7 @@ static const Table kTransitionTable = {
         { ";",      { State::Zs, 7 } },
         { "!",      { State::Zs, 7 } },
         { " ",      { State::Z, 7 } },
+        { "\t",     { State::Z, 7 } },
     }},
 
     { State::D, {
@@ -167,6 +169,7 @@ static const Table kTransitionTable = {
         { "L",      { State::I, 10 } },
         { "(",      { State::Zs,11 } },
         { ")",      { State::Zs,11 } },
+        { "[",      { State::Zs,11 } },
         { "]",      { State::Zs,11 } },
         { "}",      { State::Zs,11 } },
         { ",",      { State::Zs,11 } },
@@ -180,6 +183,7 @@ static const Table kTransitionTable = {
         { ";",      { State::Zs,11 } },
         { "!",      { State::Zs,11 } },
         { " ",      { State::Z, 11 } },
+        { "\t",     { State::Z, 11 } },
     }},
 
     { State::U, {
@@ -188,13 +192,15 @@ static const Table kTransitionTable = {
         { "(",      { State::Zs, 13 } },
         { "-",      { State::Zs, 13 } },
         { "=",      { State::Z, 14 } },
-        { " ",      { State::Z, 13 } }
+        { " ",      { State::Z, 13 } },
+        { "\t",     { State::Z, 13 } },
     }},
 
     { State::O, {
         { "(",      { State::Zs, 13 } },
         { "=",      { State::Z, 14 } },
-        { " ",      { State::Z, 13 } }
+        { " ",      { State::Z, 13 } },
+        { "\t",     { State::Z, 13 } },
     }},
 
     { State::K, {
@@ -204,7 +210,8 @@ static const Table kTransitionTable = {
         { "-",      { State::Zs, 13 } },
         { "*",      { State::Q, 15 } },
         { "/",      { State::W, 15 } },
-        { " ",      { State::Z, 13 } }
+        { " ",      { State::Z, 13 } },
+        { "\t",     { State::Z, 13 } },
     }},
 
     { State::Q, {
@@ -230,6 +237,7 @@ static const Table kTransitionTable = {
         { "!",      { State::Q, 15 } },
         { "&",      { State::Q, 15 } },
         { " ",      { State::Q, 15 } },
+        { "\t",     { State::Q, 15 } },
         { "\n",     { State::Q, 4  } },
         { "U",      { State::Q, 15 } },
     }},
@@ -257,6 +265,7 @@ static const Table kTransitionTable = {
         { "!",      { State::Q, 15 } },
         { "&",      { State::Q, 15 } },
         { " ",      { State::Q, 15 } },
+        { "\t",     { State::Q, 15 } },
         { "\n",     { State::Q, 4  } },
         { "U",      { State::Q, 15 } },
     }},
@@ -284,6 +293,7 @@ static const Table kTransitionTable = {
         { "!",      { State::W, 15 } },
         { "&",      { State::W, 15 } },
         { " ",      { State::W, 15 } },
+        { "\t",     { State::W, 15 } },
         { "\n",     { State::S, 4  } },
         { "Ʇ",      { State::Zs, 15 } },
         { "U",      { State::W, 15 } },

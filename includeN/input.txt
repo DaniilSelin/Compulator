@@ -1,5 +1,22 @@
-s=71; b = 12/2;/*aa
+int s = 71, b = 12/2, x;/*aa
 ыыы
 ффф
 aa*/
 x = 11;
+
+// Просто цикл x > b.
+
+while(x > b)
+{
+	s = s - 10d;
+	x = x - b;
+	if(x == 86)
+	{
+		s = sqrt(b);
+	}
+}
+
+print(s);
+
+real ar[2] = {1, 2};
+print(a[0]);
