@@ -4,9 +4,9 @@
 #include <unordered_map>
 #include <iostream>
 #include <fstream>
-#include "json.hpp"
 #include <codecvt>
 #include <sstream>
+#include <core/Lexeme.hpp>
 
 enum class State {
     S,    // Начальный нетерминал
@@ -24,13 +24,6 @@ enum class State {
     B,    // Логическое И
     Z,    // Z
     Zs,   // Zs => Z*
-};
-
-struct Lexeme {
-    int num;             // номер лексемы
-    std::string value;   // значение лексемы
-    int row;             // строка
-    int pos;             // столбец
 };
 
 struct Transition {
@@ -161,7 +154,7 @@ static const Table kTransitionTable = {
     }},
 
     { State::D, {
-        { "D",      { State::E, 9 } },
+        { "D",      { State::E, 8 } },
     }},
 
     { State::I, {
@@ -307,6 +300,3 @@ static const Table kTransitionTable = {
         { "&",      { State::Z, 14 } },
     }},
 };
-
-//std::unordered_map<int, std::string> g_lexemeDescriptions;
-std::string loadTextFile(const std::string& filePath);

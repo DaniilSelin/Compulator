@@ -1,8 +1,14 @@
-#include "additionalFunction.h"
+#include "semantics.h"
 #include "locale.h"
-#include "Windows.h"
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <iostream>
+#include <fstream>
+#include <codecvt>
+#include <sstream>
 
-vector<Lexeme> lexemeReader(Context& ctx, const std::string& inputString) {
+std::vector<Lexeme> lexemeReader(Context& ctx, const std::string& inputString) {
     ctx.InputSTR = inputString;
     State state = State::S;
     for (; ctx.i < inputString.size(); ctx.i++, ctx.pos++) {

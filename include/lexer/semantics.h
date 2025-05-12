@@ -1,3 +1,7 @@
+#include <string>
+#include <vector>
+#include <lexer/lexer.h>
+
 // Семантические функции
 void sem1(Context& ctx) {
     ctx.n = ctx.InputSTR[ctx.i] - '0';
@@ -114,14 +118,3 @@ void sem14(Context& ctx) {
 }
 
 void sem15(Context& ctx) {} // Пропуск
-
-std::string loadTextFile(const std::string& filePath) {
-    std::ifstream in(filePath);
-    if (!in) {
-        std::cout << "Не открывается файл: " << filePath << std::endl;
-        return std::string();
-    }
-    std::string output((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-    output += static_cast<char>('Ʇ'); // 0xE1 = Ʇ
-    return output;
-}
