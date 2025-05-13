@@ -2,22 +2,70 @@
 
 #include <string>
 #include <vector>
+#include <any>
+#include <deque>
 #include <iterator>
 #include <unordered_map>
 #include <core/Lexeme.hpp>
 
-enum class typeLiteral {
+enum class typeL{
     link,
     operation,
     mark,
     constant
 };
 
+struct VarObject {
+    std::uintptr_t addr;
+    bool IsReal;
+};
+
+struct literal {
+    typeL type;
+    std::any value;
+};
+
 struct GenContext {
-    std::vector<Lexeme> prog;
-    std::vector<std::string> magazine;
-    std::vector<int>         generator;
-    size_t                   currentIdxProg = 0;
+    std::unordered_map<std::string, VarObject> VarMap;
+    std::deque<int> MarkVector;
+    std::vector<literal> OPS;
+    int curLex;
+    bool InitReal;
+    std::vector<Lexeme>& prog;
+
+    // Конструктор
+    GenContext(std::vector<Lexeme>& program)
+        : curLex(0), InitReal(false), prog(program) {}
+};
+
+void sem1(GenContext& ctx);
+void sem2(GenContext& ctx);
+void sem3(GenContext& ctx);
+void sem4(GenContext& ctx);
+void sem5(GenContext& ctx);
+void sem6(GenContext& ctx);
+void sem7(GenContext& ctx);
+void sem8(GenContext& ctx);
+void sem9(GenContext& ctx);
+void sem10(GenContext& ctx);
+void sem11(GenContext& ctx);
+void sem12(GenContext& ctx);
+void sem13(GenContext& ctx);
+void sem14(GenContext& ctx);
+void sem15(GenContext& ctx);
+
+const std::unordered_map<int, void(*)(GenContext&)> SemanticGenHandlers = {
+    {1001, sem1}, 
+    {1002, sem2}, 
+    {1003, sem3}, 
+    {1004, sem4}, 
+    {1005, sem5}, 
+    {1006, sem6},
+    {1007, sem7}, 
+    {1008, sem8}, 
+    {1009, sem9}, 
+    {1010, sem10}, 
+    {1011, sem11}
 };
 
 enum class GenState {
@@ -45,8 +93,8 @@ enum class GenState {
 };
 
 struct GenerationRules {
-    std::vector<std::string> pattern;
-    std::vector<int> action;
+    std::vector<std::string> pattern; // Правило перехода
+    std::vector<int> semGen; // семантические программы для генератора ОПС
 };
 
 using GenInnerMap = std::unordered_map<int, GenerationRules>;
@@ -633,4 +681,4 @@ static const GenTable genTransitionTable = {
     }}
 };
 
-std::vector<int> genOPS(const std::vector<Lexeme>& prog);
+std::vector<literal> genOPS(const std::vector<Lexeme>& prog);

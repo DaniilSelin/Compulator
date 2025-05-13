@@ -1,4 +1,5 @@
 #include <genOPS/genOPS.h>
+#include <genOPS/semantics.h>
 #include "core/Lexeme.hpp"
 #include "lexer/lexer.h"
 #include <iostream>
@@ -8,6 +9,8 @@
 #include <cctype>         // для ::isdigit
 #include <stdexcept>      // для std::runtime_error
 
+using GenInnerMap = std::unordered_map<int, GenerationRules>;
+
 std::string loadTextFile(const std::string& filePath) {
     std::ifstream in(filePath);
     if (!in) {
@@ -15,52 +18,56 @@ std::string loadTextFile(const std::string& filePath) {
         return std::string();
     }
     std::string output((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-    output += static_cast<char>(0xA7B1); // 0xE1 = Ʇ
+    output += "#";
     return output;
 }
 
 std::vector<Lexeme> lexemeReader(Context& ctx, const std::string& inputString);
 
-GenState stateFromString(const std::string& s) {
-    static const std::unordered_map<std::string,GenState> mp = {
-        {"A", GenState::A}, {"P", GenState::P}, {"Q", GenState::Q},
-        {"B", GenState::B}, {"C", GenState::C}, {"D", GenState::D},
-        {"S", GenState::S}, {"U", GenState::U}, {"T", GenState::T},
-        {"V", GenState::V}, {"F", GenState::F}, {"G", GenState::G},
-        {"H", GenState::H}, {"L", GenState::L}, {"W", GenState::W},
-        {"M", GenState::M}, {"X", GenState::X}, {"N", GenState::N},
-        {"O", GenState::O}, {"E", GenState::E}, {"Z", GenState::Z},
-        {"Ʇ", GenState::Z} 
-    };
-    auto it = mp.find(s);
-    if (it == mp.end()) {
-        throw std::runtime_error("Unknown non-terminal: " + s);
+static const std::unordered_map<std::string,GenState> getState = {
+    {"A", GenState::A}, {"P", GenState::P}, {"Q", GenState::Q},
+    {"B", GenState::B}, {"C", GenState::C}, {"D", GenState::D},
+    {"S", GenState::S}, {"U", GenState::U}, {"T", GenState::T},
+    {"V", GenState::V}, {"F", GenState::F}, {"G", GenState::G},
+    {"H", GenState::H}, {"L", GenState::L}, {"W", GenState::W},
+    {"M", GenState::M}, {"X", GenState::X}, {"N", GenState::N},
+    {"O", GenState::O}, {"E", GenState::E}, {"Z", GenState::Z},
+    {"#", GenState::Z} 
+};
+
+auto printLiteral = [](const literal& lit) {
+    switch (lit.type) {
+        case typeL::link:
+            std::cout << "link(" << std::any_cast<std::string>(lit.value) << ") ";
+            break;
+        case typeL::constant:
+            if (lit.value.type() == typeid(int)) {
+                std::cout << "const(" << std::any_cast<int>(lit.value) << ") ";
+            } else {
+                std::cout << "const(" << std::any_cast<double>(lit.value) << ") ";
+            } 
+            break;
+        case typeL::mark:
+            std::cout << "mark(" << std::any_cast<int>(lit.value) << ") ";
+            break;
+        case typeL::operation:
+            std::cout << "op(" << std::any_cast<int>(lit.value) << ") ";
+            break;
     }
-    return it->second;
-}
-
-bool isNumber(const std::string& s) {
-    return !s.empty() && std::all_of(s.begin(), s.end(), ::isdigit);
-}
-
-struct literal {
-    typeLiteral type;
-    int value;
 };
 
 // --- Основная функция генерации OPS ---
 
-std::vector<int> genOPS(const std::vector<Lexeme>& prog) {
-    std::deque<std::string> magazine;
-    std::deque<int>         generator;
-    std::vector<int>        OPS;
-    int                     curLex = 0;
+std::vector<literal> genOPS(std::vector<Lexeme>& prog) {
+    GenContext ctx(prog);
+    ctx.curLex    = 0;
+    ctx.InitReal  = false;
+    ctx.OPS.clear();
+    ctx.MarkVector.clear();
+    ctx.VarMap.clear();
 
-    // инициализация
-    magazine.push_back("A");
-    magazine.push_back("Ʇ");
-    generator.push_back(0);
-    generator.push_back(0);
+    std::deque<std::string> magazine = {"A", "#"};
+    std::deque<int> generator = {0, 0};
 
     std::cout << "\n[INFO] Начало генерации OPS\n";
     std::cout << "[INFO] Начальное состояние магазина: ";
@@ -68,87 +75,98 @@ std::vector<int> genOPS(const std::vector<Lexeme>& prog) {
     std::cout << "\n[INFO] Начальное состояние генератора: ";
     for (const auto& g : generator) std::cout << g << " ";
     std::cout << "\n[INFO] Доступно переходов из A: " << genTransitionTable.at(GenState::A).size() << "\n\n";
-    
+
     // пока в «магазине» что-то есть
-    while (!magazine.empty()) {
+    while (magazine.size() != 1) {
         std::cout << "\n----------------------------------\n";
-        std::cout << "[STEP] Текущий индекс лексемы: " << curLex;
-        if (curLex < prog.size())
-            std::cout << ", лексема: " << prog[curLex] << " (num=" << prog[curLex].num << ")";
+        std::cout << "[STEP] Текущий индекс лексемы: " << ctx.curLex;
+        if (ctx.curLex < prog.size())
+            std::cout << ", лексема: " << ctx.prog[ctx.curLex].value
+                      << " (num=" << ctx.prog[ctx.curLex].num << ")";
         std::cout << "\n";
 
         // 1) достаём из генератора
-        if (!generator.empty()) {
-            int code = generator.front();
-            generator.pop_front();
-            std::cout << "[GEN] Взяли из генератора: " << code << "\n";
-            if (code != 0) {
-                OPS.push_back(code);
-                std::cout << "[GEN] Добавили в OPS: " << code << "\n";
+        int code = generator.front();
+        generator.pop_front(); 
+        std::cout << "[GEN] Взяли из генератора: " << code << "\n";
+        if (code != 0) {
+            if (auto semFunc = SemanticGenHandlers.find(code); semFunc != SemanticGenHandlers.end()){
+                semFunc->second(ctx);
+                std::cout << "[GEN] Запустили семамнтическую программу: " << code << "\n";
+            } else {
+                switch (code) {
+                    case 1:
+                        if (auto name = ctx.VarMap.find(ctx.prog.at(ctx.curLex).value); name == ctx.VarMap.end()) {
+                            throw std::runtime_error("Unutiliaze variable used: " + ctx.prog.at(ctx.curLex).value);
+                        }
+                        std::cout << "[GEN] Добавили в OPS: " << ctx.prog.at(ctx.curLex).value << "\n";
+                        ctx.OPS.push_back({typeL::link, ctx.prog.at(ctx.curLex).value});
+                        break;
+                    case 2: {
+                        int val = std::stoi(ctx.prog.at(ctx.curLex).value);
+                        std::cout << "[GEN] Добавили в OPS: " << val << "\n";
+                        ctx.OPS.push_back({typeL::constant, val});
+                        break;
+                    }
+                    case 3: {
+                        double val = std::stod(ctx.prog.at(ctx.curLex).value);
+                        std::cout << "[GEN] Добавили в OPS: " << val << "\n";
+                        ctx.OPS.push_back({typeL::constant, val});
+                        break;
+                    }
+                    default:
+                        std::cout << "[GEN] Добавили в OPS: " << code << "\n";
+                        ctx.OPS.push_back({typeL::operation, code});
+                        break;
+                }
             }
         }
-
-        if (magazine.empty()) break;
+        // int code = generator.pop_front(); if (code) OPS.push_back(code);
 
         // 2) достаём с вершины магазина
         std::string sym = magazine.front();
-        magazine.pop_front();
+        magazine.pop_front(); 
         std::cout << "[MAG] Взяли с вершины магазина: " << sym << "\n";
 
-        if (isNumber(sym)) {
+        auto elMag = getState.find(sym);
+        if (elMag == getState.end()) {
             // терминал
             int num = std::stoi(sym);
             std::cout << "[CHK] Ожидаем терминал: " << num << "\n";
-            if (curLex < prog.size() && prog[curLex].num == num) {
+            if (ctx.prog[ctx.curLex].num == num) {
                 std::cout << "[CHK] Совпало. Переходим к следующей лексеме.\n";
-                ++curLex;
+                ctx.curLex++;
             } else {
                 std::cerr << "[ERROR] Не совпал терминал " << sym
-                          << " на позиции " << curLex << "\n";
+                          << " на позиции " << ctx.curLex << "\n";
                 throw std::runtime_error("Mismatch terminal " + sym +
-                                         " at lexeme #" + std::to_string(curLex));
+                                         " at lexeme #" + std::to_string(ctx.curLex));
             }
-        } else {
+        } else { 
             // нетерминал
-            GenState st = stateFromString(sym);
-            std::cout << "[NT] Нетерминал " << sym << " => состояние " << static_cast<int>(st) << "\n";
-
-            auto itState = genTransitionTable.find(st);
+            std::cout << "[NT] Нетерминал " << sym << " => состояние " << static_cast<int>(elMag->second) << "\n";
+            auto itState = genTransitionTable.find(elMag->second);
             if (itState == genTransitionTable.end()) {
                 std::cerr << "[ERROR] Нет правил для состояния " << sym << "\n";
                 throw std::runtime_error("No rules for state " + sym);
             }
-
-            int lexNum = (curLex < prog.size()) ? prog[curLex].num : -1;
-            auto itRule = itState->second.find(lexNum);
+            auto itRule = itState->second.find(ctx.prog[ctx.curLex].num);
             if (itRule == itState->second.end()) {
                 std::cerr << "[ERROR] Нет перехода из состояния " << sym
-                          << " по лексеме " << lexNum << "\n";
+                          << " по лексеме " << ctx.prog[ctx.curLex].num << "\n";
                 throw std::runtime_error("No transition for state " + sym +
-                                         " on lexeme " + std::to_string(lexNum));
+                                         " on lexeme " + std::to_string(ctx.prog[ctx.curLex].num));
             }
-
             const GenerationRules& rule = itRule->second;
             std::cout << "[RULE] Применяем правило:\n";
             std::cout << "       pattern: ";
             for (const auto& s : rule.pattern) std::cout << s << " ";
-            std::cout << "\n       action: ";
-            for (const auto& a : rule.action) std::cout << a << " ";
+            std::cout << "\n       semGen: ";
+            for (const auto& a : rule.semGen) std::cout << a << " ";
             std::cout << "\n";
 
-            // 2.1) в магазин
-            for (auto it = rule.pattern.rbegin(); it != rule.pattern.rend(); ++it) {
-                if (!it->empty()) {
-                    magazine.push_front(*it);
-                    std::cout << "[MAG] -> " << *it << "\n";
-                }
-            }
-
-            // 2.2) в генератор
-            for (auto it = rule.action.rbegin(); it != rule.action.rend(); ++it) {
-                generator.push_front(*it);
-                std::cout << "[GEN] -> " << *it << "\n";
-            }
+            magazine.insert(magazine.begin(), rule.pattern.begin(), rule.pattern.end());
+            generator.insert(generator.begin(), rule.semGen.begin(), rule.semGen.end());
         }
 
         // вывод текущего состояния
@@ -157,18 +175,18 @@ std::vector<int> genOPS(const std::vector<Lexeme>& prog) {
         std::cout << "\n[GEN] Состояние генератора: ";
         for (const auto& g : generator) std::cout << g << " ";
         std::cout << "\n[OPS] Текущий OPS: ";
-        for (const auto& op : OPS) std::cout << op << " ";
+        for (const auto& op : ctx.OPS) 
+            printLiteral(op);
         std::cout << "\n";
     }
 
     std::cout << "\n[INFO] Генерация завершена. Итоговый OPS:\n";
-    for (const auto& op : OPS) std::cout << op << " ";
+    for (const auto& op : ctx.OPS) 
+        printLiteral(op);
     std::cout << "\n";
 
-    return OPS;
+    return ctx.OPS;
 }
-
-
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {

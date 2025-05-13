@@ -30,7 +30,7 @@ void sem4(Context& ctx) {
 void sem5(Context& ctx) {
     ctx.prog.push_back(
         {
-        20,
+        22,
         std::string(1, ctx.InputSTR[ctx.i]),
         ctx.row,
         ctx.pos

@@ -1,1 +1,5 @@
-scan(a);if(a<10){a=a+5;}else{a=a-5;}print(a);
+int a;scan(a);if(a<10){a=a+5;}else{a=a-5;}print(a);
+int gss[3] = { 34, 1, -45};
+if (a!=33.44) {
+	real k[2] = { 10.4, 5.3 };
+}
