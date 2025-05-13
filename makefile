@@ -5,4 +5,4 @@ run: build
 	./program erunda.trash
 
 clear:
-	rm ./program
+	rm ./program erunda.trash

@@ -1,2 +1,1 @@
-a = 13.456;
 scan(a);if(a<10){a=a+5;}else{a=a-5;}print(a);
