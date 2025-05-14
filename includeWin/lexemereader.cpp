@@ -127,7 +127,11 @@ std::vector<Lexeme> lexemeReader(Context& ctx, const std::string& inputString) {
             if (term != "*" && term != "/" && term != "\n") term = "U";
         InnerMap transfers = kTransitionTable.at(state);
         auto transfer = transfers.find(term);
-        if (transfer == transfers.end()) break;
+        if (transfer == transfers.end()) {
+            std::cout << "[ERROR] Не обнаружены действия для правила: '" << term << "'\n"
+                      << "Позиция ошибки: [" << ctx.row << ";" << ctx.pos << "]\n";
+            std::exit(-1);
+        }
         state = transfer->second.nextState;
         SemanticHandlers.at(transfer->second.action)(ctx);
         if (state == State::Zs) { state = State::S; ctx.pos--; ctx.i--; }

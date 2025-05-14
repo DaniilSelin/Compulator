@@ -20,7 +20,7 @@ inline std::ostream& operator<<(std::ostream& os, const Literal& lit) {
         }
         case typeLexeme::constant : {
             if (lit.value.type() == typeid(int)) os << "Константа int (" << std::any_cast<int>(lit.value) << ") ";
-            else os << "Константа double (" << std::any_cast<double>(lit.value) << ") ";
+            else os << "Константа real (" << std::any_cast<double>(lit.value) << ") ";
             break;
         }
         case typeLexeme::mark : {

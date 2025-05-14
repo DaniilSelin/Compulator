@@ -35,9 +35,13 @@ void GenSem5(GenContext& ctx) {
 }
 
 void GenSem6(GenContext& ctx) {
-    const auto& lex = ctx.prog.at(ctx.curLex);
+    Lexeme lex = ctx.prog.at(ctx.curLex);
     std::string name = lex.value;
-    if (ctx.VarMap.find(name) != ctx.VarMap.end()) throw std::runtime_error("reassignment " + name);
+    if (ctx.VarMap.find(name) != ctx.VarMap.end()) {
+        std::cout << "[ERROR] Переопределение " + name +
+                         " - Позиция[" + std::to_string(lex.row) + ";" + std::to_string(lex.pos) + "]\n";
+        std::exit(1);
+    }
     else ctx.VarMap[name] = VarObject{0, ctx.InitReal};
     ctx.MarkVector.push_front(static_cast<int>(ctx.OPS.size()));
     ctx.OPS.push_back({typeLexeme::link, name});
@@ -46,7 +50,6 @@ void GenSem6(GenContext& ctx) {
 void GenSem7(GenContext& ctx) {
     int markPos = ctx.MarkVector.front();
     std::string name = std::any_cast<std::string>(ctx.OPS[markPos].value);
-    ctx.MarkVector.pop_front();
     if (!ctx.InitReal) {
         int* ptr = new int;
         ctx.VarMap[name].IsReal = false;
@@ -60,7 +63,6 @@ void GenSem7(GenContext& ctx) {
 
 void GenSem8(GenContext& ctx) {
     int markPos = ctx.MarkVector.front();
-    std::cout << ctx.MarkVector.size() << std::endl;
     std::string name = std::any_cast<std::string>(ctx.OPS[markPos].value);
     int size = std::any_cast<int>(ctx.OPS[markPos + 1].value);
     if (!ctx.InitReal) {
@@ -77,7 +79,6 @@ void GenSem8(GenContext& ctx) {
 }
 
 void GenSem9(GenContext& ctx) {
-    std::cout << ctx.MarkVector.size() << std::endl;
     int markPos = ctx.MarkVector.front();
     ctx.MarkVector.pop_front();
     std::string name = std::any_cast<std::string>(ctx.OPS[markPos].value);
@@ -154,8 +155,11 @@ std::vector<Literal> genOPS(std::vector<Lexeme>& prog) {
                 switch (code) {
                     case 1: {
                         auto name = ctx.VarMap.find(ctx.prog.at(ctx.curLex).value);
-                        if (name == ctx.VarMap.end()) throw std::runtime_error("Используется неинициализированная переменная: " + ctx.prog.at(ctx.curLex).value);
-
+                        if (name == ctx.VarMap.end())  {
+                            std::cout << "[ERROR] Используется неинициализированная переменная: " + ctx.prog.at(ctx.curLex).value
+                                             + " - Позиция [" + std::to_string(ctx.prog.at(ctx.curLex).row) + ";" + std::to_string(ctx.prog.at(ctx.curLex).pos) + "]\n";
+                            std::exit(1);
+                        }
                         std::cout << "[GEN] Добавили в OPS: " << ctx.prog.at(ctx.curLex).value << "\n";
                         ctx.OPS.push_back({typeLexeme::link, ctx.prog.at(ctx.curLex).value});
                         break;
@@ -194,26 +198,26 @@ std::vector<Literal> genOPS(std::vector<Lexeme>& prog) {
                 std::cout << "[CHK] Совпало. Переходим к следующей лексеме.\n";
                 ctx.curLex++;
             } else {
-                std::cerr << "[ERROR] Не совпал терминал " << sym
-                          << " на позиции " << ctx.curLex << "\n";
-                throw std::runtime_error("Mismatch terminal " + sym +
-                                         " at lexeme #" + std::to_string(ctx.curLex));
+                std::cout << "[ERROR] Не совпал терминал " << sym
+                          << " Лексема: " << ctx.curLex
+                          << " Позиция: [" << ctx.prog.at(ctx.curLex).row << ";" << ctx.prog.at(ctx.curLex).pos << "]\n";
+                std::exit(1);
             }
         } else { // Нетерминал
             std::cout << "[NT] Нетерминал " << sym << " => состояние " << static_cast<int>(elMag->second) << "\n";
             auto itState = genTransitionTable.find(elMag->second);
             if (itState == genTransitionTable.end()) {
-                std::cerr << "[ERROR] Нет правил для состояния " << sym << "\n";
-                throw std::runtime_error("No rules for state " + sym);
+                std::cout << "[ERROR] Нет правил для состояния " << sym << "\n";
+                std::exit(1);
             }
             auto itRule = itState->second.find(ctx.prog[ctx.curLex].num);
             if (itRule == itState->second.end()) {
-                std::cerr << "[ERROR] Нет перехода из состояния " << sym
-                          << " по лексеме " << ctx.prog[ctx.curLex].num << "\n";
-                throw std::runtime_error("No transition for state " + sym +
-                                         " on lexeme " + std::to_string(ctx.prog[ctx.curLex].num));
+                std::cout << "[ERROR] Нет перехода из состояния " << sym
+                          << " Лексема: " << ctx.prog[ctx.curLex].num
+                          << " Позиция: [" << ctx.prog.at(ctx.curLex).row << ";" << ctx.prog.at(ctx.curLex).pos << "]\n";
+                std::exit(1);
             }
-            const GenRules& rule = itRule->second;
+            const GenRules rule = itRule->second;
             std::cout << "[RULE] Применяем правило:\n";
             std::cout << "       pattern: ";
             for (const auto& s : rule.pattern) std::cout << s << " ";

@@ -16,7 +16,7 @@ inline std::ostream&operator<<(std::ostream& os, const Lexeme& lex) {
               << ": '" << lex.value << "'"
               << " на позиции [" << lex.row << ";" << lex.pos << "]";
 }
-
+// Перегрузка оператора вывода для вектора лексем
 inline std::ostream& operator<<(std::ostream& os, const std::vector<Lexeme>& lexemes) {
     os << "Всего [" << lexemes.size() << "] лексем:\n";
     for (const auto& lex : lexemes) {
