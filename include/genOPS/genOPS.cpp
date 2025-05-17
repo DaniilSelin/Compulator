@@ -1,208 +1,217 @@
-#include <genOPS/genOPS.h>
-#include <genOPS/semantics.h>
-#include "core/Lexeme.hpp"
-#include "lexer/lexer.h"
-#include <iostream>
-#include <cstdlib>
-#include <deque>
-#include <algorithm>      // для std::all_of
-#include <cctype>         // для ::isdigit
-#include <stdexcept>      // для std::runtime_error
+#include "GenOPS.h"
+#include "core/Literal.hpp"
+#include <vector>
 
-using GenInnerMap = std::unordered_map<int, GenerationRules>;
+std::unordered_map<std::string, VarObject> VarMap;
 
-std::string loadTextFile(const std::string& filePath) {
-    std::ifstream in(filePath);
-    if (!in) {
-        std::cout << "Не открывается файл: " << filePath << std::endl;
-        return std::string();
-    }
-    std::string output((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-    output += "#";
-    return output;
+void GenSem1(GenContext& ctx) {
+    ctx.MarkVector.push_front(static_cast<int>(ctx.OPS.size()));
+    ctx.OPS.push_back(std::make_unique<Mark>(0));
+    ctx.OPS.push_back(std::make_unique<Operation>(1109));
 }
 
-std::vector<Lexeme> lexemeReader(Context& ctx, const std::string& inputString);
+void GenSem2(GenContext& ctx) {
+    int markPos = ctx.MarkVector.front();
+    ctx.OPS[markPos]->set(static_cast<int>(ctx.OPS.size()) + 2);
+    ctx.MarkVector.pop_front();
+    ctx.MarkVector.push_front(static_cast<int>(ctx.OPS.size()));
+    ctx.OPS.push_back(std::make_unique<Mark>(0));
+    ctx.OPS.push_back(std::make_unique<Operation>(1110));
+}
 
-static const std::unordered_map<std::string,GenState> getState = {
-    {"A", GenState::A}, {"P", GenState::P}, {"Q", GenState::Q},
-    {"B", GenState::B}, {"C", GenState::C}, {"D", GenState::D},
-    {"S", GenState::S}, {"U", GenState::U}, {"T", GenState::T},
-    {"V", GenState::V}, {"F", GenState::F}, {"G", GenState::G},
-    {"H", GenState::H}, {"L", GenState::L}, {"W", GenState::W},
-    {"M", GenState::M}, {"X", GenState::X}, {"N", GenState::N},
-    {"O", GenState::O}, {"E", GenState::E}, {"Z", GenState::Z},
-    {"#", GenState::Z} 
-};
+void GenSem3(GenContext& ctx) {
+    int markPos = ctx.MarkVector.front();
+    ctx.OPS[markPos]->set(static_cast<int>(ctx.OPS.size()));
+    ctx.MarkVector.pop_front();
+}
 
-auto printLiteral = [](const literal& lit) {
-    switch (lit.type) {
-        case typeL::link:
-            std::cout << "link(" << std::any_cast<std::string>(lit.value) << ") ";
-            break;
-        case typeL::constant:
-            if (lit.value.type() == typeid(int)) {
-                std::cout << "const(" << std::any_cast<int>(lit.value) << ") ";
-            } else {
-                std::cout << "const(" << std::any_cast<double>(lit.value) << ") ";
-            } 
-            break;
-        case typeL::mark:
-            std::cout << "mark(" << std::any_cast<int>(lit.value) << ") ";
-            break;
-        case typeL::operation:
-            std::cout << "op(" << std::any_cast<int>(lit.value) << ") ";
-            break;
+void GenSem4(GenContext& ctx) {
+    ctx.MarkVector.push_front(static_cast<int>(ctx.OPS.size()));
+}
+
+void GenSem5(GenContext& ctx) {
+    int markPos = ctx.MarkVector.front();
+    ctx.OPS[markPos]->set(static_cast<int>(ctx.OPS.size()) + 2);
+    ctx.MarkVector.pop_front();
+    int prevMark = ctx.MarkVector.front();
+    ctx.OPS.push_back(std::make_unique<Mark>(prevMark));
+    ctx.MarkVector.pop_front();
+    ctx.OPS.push_back(std::make_unique<Operation>(1110));
+}
+
+void GenSem6(GenContext& ctx) {
+    Lexeme lex = ctx.prog.at(ctx.curLex);
+    std::string name = lex.value;
+    if (VarMap.find(name) != VarMap.end()) {
+        std::cout << "[ERROR] Переопределение " + name +
+                         " - Позиция[" + std::to_string(lex.row) + ";" + std::to_string(lex.pos) + "]\n";
+        std::exit(1);
     }
-};
+    else VarMap[name] = VarObject{0, 0, ctx.InitReal};
+    ctx.MarkVector.push_front(static_cast<int>(ctx.OPS.size()));
+    if (ctx.InitReal) {
+        ctx.OPS.push_back(std::make_unique<LinkReal>(name));
+    } else {
+        ctx.OPS.push_back(std::make_unique<LinkInt>(name));
+    }
+}
 
-// --- Основная функция генерации OPS ---
+void GenSem7(GenContext& ctx) {
+    int markPos = ctx.MarkVector.front();
+    std::string name = std::any_cast<std::string>(ctx.OPS[markPos]->get());
+    VarMap[name].size = 1;
+    if (!ctx.InitReal) {
+        int* ptr = new int;
+        VarMap[name].isReal = false;
+        VarMap[name].addr = reinterpret_cast<std::uintptr_t>(ptr);
+    } else {
+        double* ptr = new double;
+        VarMap[name].isReal = true;
+        VarMap[name].addr = reinterpret_cast<std::uintptr_t>(ptr);
+    }
+}
 
-std::vector<literal> genOPS(std::vector<Lexeme>& prog) {
+void GenSem8(GenContext& ctx) {
+    int markPos = ctx.MarkVector.front();
+    std::string name = std::any_cast<std::string>(ctx.OPS[markPos]->get());
+    int size = std::any_cast<int>(ctx.OPS[markPos + 1]->get());
+    VarMap[name].size = size;
+    if (!ctx.InitReal) {
+        int* ptr = new int[size];
+        VarMap[name].isReal = false;
+        VarMap[name].addr = reinterpret_cast<std::uintptr_t>(ptr);
+    } else {
+        double* ptr = new double[size];
+        VarMap[name].isReal = true;
+        VarMap[name].addr = reinterpret_cast<std::uintptr_t>(ptr);
+    }
+    ctx.OPS.push_back(std::make_unique<Mark>(markPos));
+    ctx.OPS.push_back(std::make_unique<Operation>(1111));
+}
+
+void GenSem9(GenContext& ctx) {
+    int markPos = ctx.MarkVector.front();
+    ctx.MarkVector.pop_front();
+    std::string name = std::any_cast<std::string>(ctx.OPS[markPos]->get());
+    if (VarMap[name].addr == 0) {
+        int distance = static_cast<int>(ctx.OPS.size()) - markPos;
+        if (distance == 1) {
+            VarMap[name].size = 1;
+            if (!ctx.InitReal) {
+                int* ptr = new int;
+                VarMap[name].isReal = false;
+                VarMap[name].addr = reinterpret_cast<std::uintptr_t>(ptr);
+            } else {
+                double* ptr = new double;
+                VarMap[name].isReal = true;
+                VarMap[name].addr = reinterpret_cast<std::uintptr_t>(ptr);
+            }
+            ctx.OPS.pop_back();
+        } else {
+            int size = std::any_cast<int>(ctx.OPS[markPos + 1]->get());
+            VarMap[name].size = size;
+            if (!ctx.InitReal) {
+                int* ptr = new int[size];
+                VarMap[name].isReal = false;
+                VarMap[name].addr = reinterpret_cast<std::uintptr_t>(ptr);
+            } else {
+                double* ptr = new double[size];
+                VarMap[name].isReal = true;
+                VarMap[name].addr = reinterpret_cast<std::uintptr_t>(ptr);
+            }
+            ctx.OPS.pop_back();
+            ctx.OPS.pop_back();
+        }
+    }
+}
+
+void GenSem10(GenContext& ctx) {
+    ctx.InitReal = false;
+}
+
+void GenSem11(GenContext& ctx) {
+    ctx.InitReal = true;
+}
+
+std::vector<std::unique_ptr<Literal>> genOPS(std::vector<Lexeme>& prog) {
     GenContext ctx(prog);
-    ctx.curLex    = 0;
-    ctx.InitReal  = false;
-    ctx.OPS.clear();
-    ctx.MarkVector.clear();
-    ctx.VarMap.clear();
 
     std::deque<std::string> magazine = {"A", "#"};
     std::deque<int> generator = {0, 0};
 
-    std::cout << "\n[INFO] Начало генерации OPS\n";
-    std::cout << "[INFO] Начальное состояние магазина: ";
-    for (const auto& s : magazine) std::cout << s << " ";
-    std::cout << "\n[INFO] Начальное состояние генератора: ";
-    for (const auto& g : generator) std::cout << g << " ";
-    std::cout << "\n[INFO] Доступно переходов из A: " << genTransitionTable.at(GenState::A).size() << "\n\n";
-
     // пока в «магазине» что-то есть
-    while (magazine.size() != 1) {
-        std::cout << "\n----------------------------------\n";
-        std::cout << "[STEP] Текущий индекс лексемы: " << ctx.curLex;
-        if (ctx.curLex < prog.size())
-            std::cout << ", лексема: " << ctx.prog[ctx.curLex].value
-                      << " (num=" << ctx.prog[ctx.curLex].num << ")";
-        std::cout << "\n";
-
+    while (magazine.size() > 1) {
         // 1) достаём из генератора
         int code = generator.front();
-        generator.pop_front(); 
-        std::cout << "[GEN] Взяли из генератора: " << code << "\n";
+        generator.pop_front();
         if (code != 0) {
-            if (auto semFunc = SemanticGenHandlers.find(code); semFunc != SemanticGenHandlers.end()){
+            auto semFunc = SemanticGenHandlers.find(code);
+            if (semFunc != SemanticGenHandlers.end()){
                 semFunc->second(ctx);
-                std::cout << "[GEN] Запустили семамнтическую программу: " << code << "\n";
             } else {
                 switch (code) {
-                    case 1:
-                        if (auto name = ctx.VarMap.find(ctx.prog.at(ctx.curLex).value); name == ctx.VarMap.end()) {
-                            throw std::runtime_error("Unutiliaze variable used: " + ctx.prog.at(ctx.curLex).value);
+                    case 1: {
+                        auto var = VarMap.find(ctx.prog.at(ctx.curLex).value);
+                        if (var == VarMap.end())  {
+                            std::cout << "[ERROR] Используется неинициализированная переменная: " + ctx.prog.at(ctx.curLex).value
+                                             + " - Позиция [" + std::to_string(ctx.prog.at(ctx.curLex).row) + ";" + std::to_string(ctx.prog.at(ctx.curLex).pos) + "]\n";
+                            std::exit(1);
                         }
-                        std::cout << "[GEN] Добавили в OPS: " << ctx.prog.at(ctx.curLex).value << "\n";
-                        ctx.OPS.push_back({typeL::link, ctx.prog.at(ctx.curLex).value});
+
+                        if (var->second.isReal) {
+                            ctx.OPS.push_back(std::make_unique<LinkReal>(ctx.prog.at(ctx.curLex).value));
+                        } else {
+                            ctx.OPS.push_back(std::make_unique<LinkInt>(ctx.prog.at(ctx.curLex).value));
+                        }
                         break;
+                    }
                     case 2: {
                         int val = std::stoi(ctx.prog.at(ctx.curLex).value);
-                        std::cout << "[GEN] Добавили в OPS: " << val << "\n";
-                        ctx.OPS.push_back({typeL::constant, val});
+                        ctx.OPS.push_back(std::make_unique<ConstantInt>(val));
                         break;
                     }
                     case 3: {
                         double val = std::stod(ctx.prog.at(ctx.curLex).value);
-                        std::cout << "[GEN] Добавили в OPS: " << val << "\n";
-                        ctx.OPS.push_back({typeL::constant, val});
+                        ctx.OPS.push_back(std::make_unique<ConstantReal>(val));
                         break;
                     }
-                    default:
-                        std::cout << "[GEN] Добавили в OPS: " << code << "\n";
-                        ctx.OPS.push_back({typeL::operation, code});
+                    default: {
+                        ctx.OPS.push_back(std::make_unique<Operation>(code));
                         break;
+                    }
                 }
             }
         }
-        // int code = generator.pop_front(); if (code) OPS.push_back(code);
-
-        // 2) достаём с вершины магазина
         std::string sym = magazine.front();
-        magazine.pop_front(); 
-        std::cout << "[MAG] Взяли с вершины магазина: " << sym << "\n";
-
+        magazine.pop_front();
         auto elMag = getState.find(sym);
-        if (elMag == getState.end()) {
-            // терминал
+        if (elMag == getState.end()) { // Терминал
             int num = std::stoi(sym);
-            std::cout << "[CHK] Ожидаем терминал: " << num << "\n";
             if (ctx.prog[ctx.curLex].num == num) {
-                std::cout << "[CHK] Совпало. Переходим к следующей лексеме.\n";
                 ctx.curLex++;
             } else {
-                std::cerr << "[ERROR] Не совпал терминал " << sym
-                          << " на позиции " << ctx.curLex << "\n";
-                throw std::runtime_error("Mismatch terminal " + sym +
-                                         " at lexeme #" + std::to_string(ctx.curLex));
+                std::cout << "[ERROR] Не совпал терминал " << sym
+                          << " Лексема: " << ctx.curLex
+                          << " Позиция: [" << ctx.prog.at(ctx.curLex).row << ";" << ctx.prog.at(ctx.curLex).pos << "]\n";
+                std::exit(1);
             }
-        } else { 
-            // нетерминал
-            std::cout << "[NT] Нетерминал " << sym << " => состояние " << static_cast<int>(elMag->second) << "\n";
+        } else {
             auto itState = genTransitionTable.find(elMag->second);
             if (itState == genTransitionTable.end()) {
-                std::cerr << "[ERROR] Нет правил для состояния " << sym << "\n";
-                throw std::runtime_error("No rules for state " + sym);
+                std::cout << "[ERROR] Нет правил для состояния " << sym << "\n";
+                std::exit(1);
             }
             auto itRule = itState->second.find(ctx.prog[ctx.curLex].num);
             if (itRule == itState->second.end()) {
-                std::cerr << "[ERROR] Нет перехода из состояния " << sym
-                          << " по лексеме " << ctx.prog[ctx.curLex].num << "\n";
-                throw std::runtime_error("No transition for state " + sym +
-                                         " on lexeme " + std::to_string(ctx.prog[ctx.curLex].num));
+                std::cout << "[ERROR] Нет перехода из состояния " << sym
+                          << " Лексема: " << ctx.prog[ctx.curLex].num
+                          << " Позиция: [" << ctx.prog.at(ctx.curLex).row << ";" << ctx.prog.at(ctx.curLex).pos << "]\n";
+                std::exit(1);
             }
-            const GenerationRules& rule = itRule->second;
-            std::cout << "[RULE] Применяем правило:\n";
-            std::cout << "       pattern: ";
-            for (const auto& s : rule.pattern) std::cout << s << " ";
-            std::cout << "\n       semGen: ";
-            for (const auto& a : rule.semGen) std::cout << a << " ";
-            std::cout << "\n";
-
+            const GenRules rule = itRule->second;
             magazine.insert(magazine.begin(), rule.pattern.begin(), rule.pattern.end());
             generator.insert(generator.begin(), rule.semGen.begin(), rule.semGen.end());
         }
-
-        // вывод текущего состояния
-        std::cout << "[MAG] Состояние магазина: ";
-        for (const auto& s : magazine) std::cout << s << " ";
-        std::cout << "\n[GEN] Состояние генератора: ";
-        for (const auto& g : generator) std::cout << g << " ";
-        std::cout << "\n[OPS] Текущий OPS: ";
-        for (const auto& op : ctx.OPS) 
-            printLiteral(op);
-        std::cout << "\n";
     }
-
-    std::cout << "\n[INFO] Генерация завершена. Итоговый OPS:\n";
-    for (const auto& op : ctx.OPS) 
-        printLiteral(op);
-    std::cout << "\n";
-
-    return ctx.OPS;
-}
-
-int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <file_path>" << std::endl;
-        return 1;
-    }
-
-    Context ctx; // Создаём контекст
-    const char* filePath = argv[1];
-    
-    std::string inputString = loadTextFile(filePath);
-    std::vector<Lexeme> prog = lexemeReader(ctx, inputString);
-
-    std::cout << "Parsed " << prog.size() << " lexemes:" << std::endl;
-	printLexemes(prog);
-
-	genOPS(prog);    
-    return 0;
+    return std::move(ctx.OPS);
 }

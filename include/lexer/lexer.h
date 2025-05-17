@@ -319,3 +319,5 @@ static const Table kTransitionTable = {
         { "&",      { State::Z, 14 } },
     }},
 };
+
+std::vector<Lexeme> lexemeReader(Context& ctx, const std::string& inputString);

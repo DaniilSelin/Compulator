@@ -19,7 +19,9 @@ std::vector<Lexeme> lexemeReader(Context& ctx, const std::string& inputString) {
             if (term != "*" && term != "/" && term != "\n") term = "U";
         InnerMap transfers = kTransitionTable.at(state);
         auto transfer = transfers.find(term);
-        if (transfer == transfers.end()) break;
+        if (transfer == transfers.end()) 
+            throw std::runtime_error("No transition found for terminal: " + term 
+            + "pos(" + std::to_string(ctx.row) + "; " + std::to_string(ctx.pos) + ")\n");
         state = transfer->second.nextState;
         SemanticHandlers.at(transfer->second.action)(ctx);
         if (state == State::Zs) { state = State::S; ctx.pos--; ctx.i--; }
