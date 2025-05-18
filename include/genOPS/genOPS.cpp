@@ -6,8 +6,8 @@ std::unordered_map<std::string, VarObject> VarMap;
 
 void GenSem1(GenContext& ctx) {
     ctx.MarkVector.push_front(static_cast<int>(ctx.OPS.size()));
-    ctx.OPS.push_back(std::make_unique<Mark>(0));
-    ctx.OPS.push_back(std::make_unique<Operation>(1109));
+    ctx.OPS.push_back(std::make_shared<Mark>(0));
+    ctx.OPS.push_back(std::make_shared<Operation>(1109));
 }
 
 void GenSem2(GenContext& ctx) {
@@ -15,8 +15,8 @@ void GenSem2(GenContext& ctx) {
     ctx.OPS[markPos]->set(static_cast<int>(ctx.OPS.size()) + 2);
     ctx.MarkVector.pop_front();
     ctx.MarkVector.push_front(static_cast<int>(ctx.OPS.size()));
-    ctx.OPS.push_back(std::make_unique<Mark>(0));
-    ctx.OPS.push_back(std::make_unique<Operation>(1110));
+    ctx.OPS.push_back(std::make_shared<Mark>(0));
+    ctx.OPS.push_back(std::make_shared<Operation>(1110));
 }
 
 void GenSem3(GenContext& ctx) {
@@ -34,9 +34,9 @@ void GenSem5(GenContext& ctx) {
     ctx.OPS[markPos]->set(static_cast<int>(ctx.OPS.size()) + 2);
     ctx.MarkVector.pop_front();
     int prevMark = ctx.MarkVector.front();
-    ctx.OPS.push_back(std::make_unique<Mark>(prevMark));
+    ctx.OPS.push_back(std::make_shared<Mark>(prevMark));
     ctx.MarkVector.pop_front();
-    ctx.OPS.push_back(std::make_unique<Operation>(1110));
+    ctx.OPS.push_back(std::make_shared<Operation>(1110));
 }
 
 void GenSem6(GenContext& ctx) {
@@ -50,9 +50,9 @@ void GenSem6(GenContext& ctx) {
     else VarMap[name] = VarObject{0, 0, ctx.InitReal};
     ctx.MarkVector.push_front(static_cast<int>(ctx.OPS.size()));
     if (ctx.InitReal) {
-        ctx.OPS.push_back(std::make_unique<LinkReal>(name));
+        ctx.OPS.push_back(std::make_shared<LinkReal>(name));
     } else {
-        ctx.OPS.push_back(std::make_unique<LinkInt>(name));
+        ctx.OPS.push_back(std::make_shared<LinkInt>(name));
     }
 }
 
@@ -85,8 +85,7 @@ void GenSem8(GenContext& ctx) {
         VarMap[name].isReal = true;
         VarMap[name].addr = reinterpret_cast<std::uintptr_t>(ptr);
     }
-    ctx.OPS.push_back(std::make_unique<Mark>(markPos));
-    ctx.OPS.push_back(std::make_unique<Operation>(1111));
+    ctx.OPS.push_back(std::make_shared<Operation>(1111));
 }
 
 void GenSem9(GenContext& ctx) {
@@ -133,7 +132,7 @@ void GenSem11(GenContext& ctx) {
     ctx.InitReal = true;
 }
 
-std::vector<std::unique_ptr<Literal>> genOPS(std::vector<Lexeme>& prog) {
+std::vector<std::shared_ptr<Literal>> genOPS(std::vector<Lexeme>& prog) {
     GenContext ctx(prog);
 
     std::deque<std::string> magazine = {"A", "#"};
@@ -159,24 +158,24 @@ std::vector<std::unique_ptr<Literal>> genOPS(std::vector<Lexeme>& prog) {
                         }
 
                         if (var->second.isReal) {
-                            ctx.OPS.push_back(std::make_unique<LinkReal>(ctx.prog.at(ctx.curLex).value));
+                            ctx.OPS.push_back(std::make_shared<LinkReal>(ctx.prog.at(ctx.curLex).value));
                         } else {
-                            ctx.OPS.push_back(std::make_unique<LinkInt>(ctx.prog.at(ctx.curLex).value));
+                            ctx.OPS.push_back(std::make_shared<LinkInt>(ctx.prog.at(ctx.curLex).value));
                         }
                         break;
                     }
                     case 2: {
                         int val = std::stoi(ctx.prog.at(ctx.curLex).value);
-                        ctx.OPS.push_back(std::make_unique<ConstantInt>(val));
+                        ctx.OPS.push_back(std::make_shared<ConstantInt>(val));
                         break;
                     }
                     case 3: {
                         double val = std::stod(ctx.prog.at(ctx.curLex).value);
-                        ctx.OPS.push_back(std::make_unique<ConstantReal>(val));
+                        ctx.OPS.push_back(std::make_shared<ConstantReal>(val));
                         break;
                     }
                     default: {
-                        ctx.OPS.push_back(std::make_unique<Operation>(code));
+                        ctx.OPS.push_back(std::make_shared<Operation>(code));
                         break;
                     }
                 }

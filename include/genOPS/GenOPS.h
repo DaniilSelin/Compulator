@@ -5,7 +5,7 @@
 #include <core/Literal.hpp>
 #include <deque>
 
-std::vector<std::unique_ptr<Literal>> genOPS(std::vector<Lexeme>& prog);
+std::vector<std::shared_ptr<Literal>> genOPS(std::vector<Lexeme>& prog);
 
 using GenInnerMap = std::unordered_map<int, GenRules>;
 using GenTable    = std::unordered_map<GenState, GenInnerMap>;

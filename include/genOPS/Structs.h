@@ -33,7 +33,7 @@ enum class GenState {
 
 struct GenContext {
     std::deque<int> MarkVector;
-    std::vector<std::unique_ptr<Literal>> OPS;
+    std::vector<std::shared_ptr<Literal>> OPS;
     int curLex = 0;
     bool InitReal = false;
     std::vector<Lexeme> prog;

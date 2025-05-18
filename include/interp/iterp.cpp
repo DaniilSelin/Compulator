@@ -5,13 +5,10 @@
 #include "core/Literal.hpp"
 
 
-void interpretation(std::vector<std::unique_ptr<Literal>>&& ops) {
+void interpretation(std::vector<std::shared_ptr<Literal>>&& ops) {
     IterpContext ctx(std::move(ops));
-
     while (ctx.curLit < ctx.ops.size()) {
         auto& lit = ctx.ops[ctx.curLit];
-        lit->printLex(std::cout);
-        std::cout << "\n";
         switch (lit->type()) {
             case LiteralType::Operation: {
                 int opCode = std::get<int>(lit->evaluate());
@@ -20,7 +17,7 @@ void interpretation(std::vector<std::unique_ptr<Literal>>&& ops) {
                 break;
             }
             default:
-                ctx.magasine.push_back(std::move(ctx.ops[ctx.curLit]));
+                ctx.magasine.push_back(ctx.ops[ctx.curLit]);
                 break;
         }
         ctx.curLit++;
@@ -43,7 +40,7 @@ int main(int argc, char* argv[]) {
     std::cout << "Parsed " << prog.size() << " lexemes:" << std::endl;
 	printLexemes(prog);
 
-	std::vector<std::unique_ptr<Literal>> ops = genOPS(prog);
+	std::vector<std::shared_ptr<Literal>> ops = genOPS(prog);
 
 	std::cout << "\n[INFO] Генерация завершена. Итоговый OPS:\n";
 	for (const auto& op : ops) { op->printLex(std::cout); std::cout << " "; }
@@ -52,5 +49,6 @@ int main(int argc, char* argv[]) {
 	std::cout << "\n[INFO] Программа начинает работу\n";
 	interpretation(std::move(ops));
 
+    std::cout << "\n[INFO] Программа закончила работу\n";
     return 0;
 }
