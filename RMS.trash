@@ -1,0 +1,25 @@
+int n, i;
+real b[100], sumln, sumsq, gm, rms;
+
+scan(n);
+
+if (n > 0)
+{
+    sumln = 0;
+    sumsq = 0;
+    i = 0;
+    while (i < n) {
+        scan(b[i]);
+        // для геометрического среднего берём ln(|b[i]|)
+        sumln = sumln + ln(abs(b[i]));
+        // для RMS накапливаем b[i]^2
+        sumsq = sumsq + b[i] * b[i];
+        i = i + 1;
+    }
+    // геометрическое среднее = exp( (1/n)*sum ln|b[i]| )
+    gm  = exp(sumln / n);
+    // среднеквадратичное = sqrt( (1/n)*sum b[i]^2 )
+    rms = sqrt(sumsq / n);
+    print(gm);
+    print(rms);
+}

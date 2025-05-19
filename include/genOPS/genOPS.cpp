@@ -43,9 +43,8 @@ void GenSem6(GenContext& ctx) {
     Lexeme lex = ctx.prog.at(ctx.curLex);
     std::string name = lex.value;
     if (VarMap.find(name) != VarMap.end()) {
-        std::cout << "[ERROR] Переопределение " + name +
-                         " - Позиция[" + std::to_string(lex.row) + ";" + std::to_string(lex.pos) + "]\n";
-        std::exit(1);
+        throw std::runtime_error("[ERROR] Переопределение " + name +
+                         " - Позиция[" + std::to_string(lex.row) + ";" + std::to_string(lex.pos) + "]\n");
     }
     else VarMap[name] = VarObject{0, 0, ctx.InitReal};
     ctx.MarkVector.push_front(static_cast<int>(ctx.OPS.size()));
@@ -152,9 +151,8 @@ std::vector<std::shared_ptr<Literal>> genOPS(std::vector<Lexeme>& prog) {
                     case 1: {
                         auto var = VarMap.find(ctx.prog.at(ctx.curLex).value);
                         if (var == VarMap.end())  {
-                            std::cout << "[ERROR] Используется неинициализированная переменная: " + ctx.prog.at(ctx.curLex).value
-                                             + " - Позиция [" + std::to_string(ctx.prog.at(ctx.curLex).row) + ";" + std::to_string(ctx.prog.at(ctx.curLex).pos) + "]\n";
-                            std::exit(1);
+                            throw std::runtime_error("[ERROR] Используется неинициализированная переменная: " + ctx.prog.at(ctx.curLex).value
+                                             + " - Позиция [" + std::to_string(ctx.prog.at(ctx.curLex).row) + ";" + std::to_string(ctx.prog.at(ctx.curLex).pos) + "]\n");
                         }
 
                         if (var->second.isReal) {
@@ -189,28 +187,34 @@ std::vector<std::shared_ptr<Literal>> genOPS(std::vector<Lexeme>& prog) {
             if (ctx.prog[ctx.curLex].num == num) {
                 ctx.curLex++;
             } else {
-                std::cout << "[ERROR] Не совпал терминал " << sym
-                          << " Лексема: " << ctx.curLex
-                          << " Позиция: [" << ctx.prog.at(ctx.curLex).row << ";" << ctx.prog.at(ctx.curLex).pos << "]\n";
-                std::exit(1);
+                throw std::runtime_error(
+                    "[ERROR] Не совпал терминал " + sym +
+                    " Лексема: " + std::to_string(ctx.prog[ctx.curLex].num) +
+                    " Позиция: [" + std::to_string(ctx.prog.at(ctx.curLex).row) + ";" +
+                    std::to_string(ctx.prog.at(ctx.curLex).pos) + "]\n"
+                );
             }
         } else {
             auto itState = genTransitionTable.find(elMag->second);
-            if (itState == genTransitionTable.end()) {
-                std::cout << "[ERROR] Нет правил для состояния " << sym << "\n";
-                std::exit(1);
-            }
             auto itRule = itState->second.find(ctx.prog[ctx.curLex].num);
             if (itRule == itState->second.end()) {
-                std::cout << "[ERROR] Нет перехода из состояния " << sym
-                          << " Лексема: " << ctx.prog[ctx.curLex].num
-                          << " Позиция: [" << ctx.prog.at(ctx.curLex).row << ";" << ctx.prog.at(ctx.curLex).pos << "]\n";
-                std::exit(1);
+                throw std::runtime_error(
+                    "[ERROR] Нет перехода из состояния " + sym +
+                    " Лексема: " + std::to_string(ctx.prog[ctx.curLex].num) +
+                    " Позиция: [" + std::to_string(ctx.prog.at(ctx.curLex).row) + ";" +
+                    std::to_string(ctx.prog.at(ctx.curLex).pos) + "]\n"
+                );
             }
             const GenRules rule = itRule->second;
             magazine.insert(magazine.begin(), rule.pattern.begin(), rule.pattern.end());
             generator.insert(generator.begin(), rule.semGen.begin(), rule.semGen.end());
         }
     }
+    if (ctx.prog.size() != ctx.curLex + 1) throw std::runtime_error(
+                    "[ERROR] Синтаксическая ошибка " + ctx.prog[ctx.curLex].value +
+                    " Лексема: " + std::to_string(ctx.prog[ctx.curLex].num) +
+                    " Позиция: [" + std::to_string(ctx.prog.at(ctx.curLex).row) + ";" +
+                    std::to_string(ctx.prog.at(ctx.curLex).pos) + "]\n"
+                );
     return std::move(ctx.OPS);
 }

@@ -1,6 +1,7 @@
 int i = 0, j, n;
 real tmp;
-real b[100];
+int a = 5;
+real b[3] = {2, 23, a};
 scan(n);  // читаем количество элементов массива (5)
 while (i < n) {
     scan(b[i]);
@@ -25,9 +26,4 @@ i = 0;
 while (i < n) {
     print(b[i]);
     i = i + 1;
-}
-
-if ((2 > 1) && (1 < 4))
-{
-    print(1000);
 }
