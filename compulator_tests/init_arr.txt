@@ -1,0 +1,11 @@
+int n;
+int b[1000];
+scan(n);
+print(n);
+int i = 0;
+while (i < n) {
+	scan(b[i]);
+	i = i + 1;
+}
+i = 0;
+while (i < n) { print(b[i]); }

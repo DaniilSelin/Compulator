@@ -1,0 +1,7 @@
+int i = 5;
+int j;
+j = 12;
+int i = 8; // i уже была объявлена
+while (i < 5) { 
+	print(i);
+}
