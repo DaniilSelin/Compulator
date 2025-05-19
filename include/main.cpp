@@ -36,8 +36,15 @@ int main(int argc, char* argv[]) {
             std::cout << " ";
         }
         std::cout << "\n";
+        
+        std::cout << "\n[INFO] Программа начинает работу\n";
     }
 
     interpretation(std::move(ops));
+
+    if (verbose) {
+        std::cout << "[INFO] Программа закончила работу\n";
+    }
+
     return 0;
 }

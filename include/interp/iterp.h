@@ -1,7 +1,14 @@
 #include "core/Literal.hpp"
-#include "interp/semantics.h"
 #include <vector>
 #include <cmath>
+
+struct IterpContext {
+    std::deque<std::shared_ptr<Literal>> magasine;
+    std::vector<std::shared_ptr<Literal>> ops;
+    int curLit = 0;
+    // Конструктор
+    IterpContext(std::vector<std::shared_ptr<Literal>> OPS): ops(std::move(OPS)) {}
+};
 
 void interpretation(std::vector<std::shared_ptr<Literal>>&&);
 
@@ -32,7 +39,7 @@ void InterpSem1109(IterpContext&);
 void InterpSem1110(IterpContext&);
 void InterpSem1111(IterpContext&);
 
-const std::unordered_map<int, void(*)(IterpContext&)> SemanticIterpHandlers = {
+const  std::unordered_map<int, void(*)(IterpContext&)> SemanticIterpHandlers = {
     {61, InterpSem61},      // =
     {43, InterpSem43},      // +
     {45, InterpSem45},      // -
